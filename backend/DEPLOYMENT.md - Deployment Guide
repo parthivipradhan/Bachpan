@@ -1,0 +1,297 @@
+Bachpan Backend Deployment Guide
+🚀 Deployment Options
+1. Heroku Deployment
+Prerequisites
+
+Heroku account
+Heroku CLI installed
+
+Steps
+
+Create Heroku app
+
+bashheroku create bachpan-backend
+
+Add MongoDB Atlas
+
+bashheroku addons:create mongolab:sandbox
+
+Set environment variables
+
+bashheroku config:set NODE_ENV=production
+heroku config:set JWT_SECRET=your_super_secret_key
+heroku config:set AADHAAR_FACE_MATCH_API_URL=https://api.example.com/face-match
+heroku config:set AADHAAR_API_KEY=your_api_key
+
+Create Procfile
+
+web: node server.js
+
+Deploy
+
+bashgit add .
+git commit -m "Deploy to Heroku"
+git push heroku main
+2. AWS EC2 Deployment
+Prerequisites
+
+AWS account
+EC2 instance (Ubuntu 20.04 LTS)
+Domain name (optional)
+
+Steps
+
+Connect to EC2
+
+bashssh -i your-key.pem ubuntu@your-ec2-ip
+
+Install Node.js and MongoDB
+
+bash# Update packages
+sudo apt update
+sudo apt upgrade -y
+
+# Install Node.js 18
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Install MongoDB
+wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
+echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+sudo apt update
+sudo apt install -y mongodb-org
+sudo systemctl start mongod
+sudo systemctl enable mongod
+
+Clone and setup application
+
+bashcd /home/ubuntu
+git clone <your-repo-url>
+cd bachpan-backend
+npm install --production
+
+Configure environment
+
+bashnano .env
+# Add your production environment variables
+
+Install PM2 for process management
+
+bashsudo npm install -g pm2
+pm2 start server.js --name bachpan-backend
+pm2 startup
+pm2 save
+
+Setup Nginx as reverse proxy
+
+bashsudo apt install -y nginx
+
+# Create Nginx config
+sudo nano /etc/nginx/sites-available/bachpan
+Add this configuration:
+nginxserver {
+    listen 80;
+    server_name your-domain.com;
+
+    location / {
+        proxy_pass http://localhost:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    location /uploads {
+        alias /home/ubuntu/bachpan-backend/uploads;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+}
+Enable the site:
+bashsudo ln -s /etc/nginx/sites-available/bachpan /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl restart nginx
+
+Setup SSL with Let's Encrypt
+
+bashsudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d your-domain.com
+3. Docker Deployment
+Create Dockerfile
+dockerfileFROM node:18-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --only=production
+
+COPY . .
+
+RUN mkdir -p uploads
+
+EXPOSE 5000
+
+CMD ["node", "server.js"]
+Create docker-compose.yml
+yamlversion: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://mongo:27017/bachpan
+      - JWT_SECRET=${JWT_SECRET}
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:6.0
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "27017:27017"
+
+volumes:
+  mongodb_data:
+Deploy with Docker
+bashdocker-compose up -d
+4. DigitalOcean App Platform
+
+Connect GitHub repository
+Configure build settings
+
+Build command: npm install
+Run command: npm start
+
+
+Add MongoDB database
+
+Choose MongoDB add-on
+Note connection string
+
+
+Set environment variables
+
+Add all required env vars from .env.example
+
+
+Deploy
+
+Click "Create Resources"
+
+
+
+🔒 Security Checklist
+
+ Change all default passwords
+ Set strong JWT_SECRET
+ Enable HTTPS/SSL
+ Configure CORS properly
+ Set up firewall rules
+ Enable MongoDB authentication
+ Use environment variables for secrets
+ Set up regular backups
+ Enable rate limiting
+ Configure logging
+ Set up monitoring
+
+📊 Monitoring Setup
+1. PM2 Monitoring
+bashpm2 install pm2-logrotate
+pm2 set pm2-logrotate:max_size 10M
+pm2 set pm2-logrotate:retain 7
+2. Setup Application Monitoring
+bash# Install monitoring tools
+npm install --save-dev morgan winston
+3. Database Backups
+bash# Create backup script
+nano /home/ubuntu/backup.sh
+bash#!/bin/bash
+BACKUP_DIR="/home/ubuntu/backups"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+mongodump --out=$BACKUP_DIR/backup_$TIMESTAMP
+find $BACKUP_DIR -type d -mtime +7 -exec rm -rf {} +
+Make it executable:
+bashchmod +x /home/ubuntu/backup.sh
+Add to crontab (daily at 2 AM):
+bashcrontab -e
+0 2 * * * /home/ubuntu/backup.sh
+🌐 Environment-Specific Configurations
+Production .env
+envNODE_ENV=production
+PORT=5000
+MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/bachpan?retryWrites=true&w=majority
+JWT_SECRET=very_secure_random_string_here
+JWT_EXPIRE=7d
+MAX_FILE_SIZE=10485760
+AADHAAR_FACE_MATCH_API_URL=https://api.production.com/face-match
+AADHAAR_API_KEY=production_api_key
+STORAGE_TYPE=s3
+AWS_ACCESS_KEY_ID=your_aws_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret
+AWS_REGION=ap-south-1
+AWS_S3_BUCKET=bachpan-production
+📈 Scaling Considerations
+Horizontal Scaling
+
+Use load balancer (AWS ELB, Nginx)
+Deploy multiple app instances
+Use Redis for session management
+
+Database Scaling
+
+MongoDB Atlas with replica sets
+Read replicas for heavy read operations
+Sharding for large datasets
+
+File Storage
+
+Use AWS S3 instead of local storage
+Enable CloudFront CDN for media files
+Implement lazy loading for images
+
+🔧 Troubleshooting
+Common Issues
+MongoDB connection failed
+bash# Check MongoDB status
+sudo systemctl status mongod
+
+# Check logs
+sudo tail -f /var/log/mongodb/mongod.log
+Port already in use
+bash# Find process using port 5000
+sudo lsof -i :5000
+
+# Kill process
+sudo kill -9 <PID>
+Permission errors
+bash# Fix uploads directory permissions
+sudo chown -R $USER:$USER /path/to/bachpan-backend/uploads
+chmod -R 755 /path/to/bachpan-backend/uploads
+📞 Support
+For deployment issues:
+
+Check logs: pm2 logs bachpan-backend
+Monitor: pm2 monit
+Restart: pm2 restart bachpan-backend
+
+🎯 Post-Deployment Checklist
+
+ Test all API endpoints
+ Verify file uploads work
+ Check Aadhaar API integration
+ Test authentication flow
+ Verify database connections
+ Check SSL certificate
+ Test CORS settings
+ Verify email notifications (if any)
+ Load test the application
+ Set up monitoring alerts
+ Document API for frontend team
+ Create admin user account

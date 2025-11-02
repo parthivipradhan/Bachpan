@@ -1,0 +1,223 @@
+Bachpan Backend API
+A comprehensive backend system for tracking and reporting child labour cases with facial recognition integration.
+🚀 Features
+
+Report Management: Submit and track child labour cases with media evidence
+Location Tracking: Auto-capture GPS coordinates with each report
+Aadhaar Matching: Facial recognition integration with Aadhaar database
+Admin Dashboard: Comprehensive analytics and case management
+Authentication: JWT-based secure authentication system
+File Upload: Support for images and videos with validation
+Statistics: Real-time analytics and location-based insights
+
+📋 Prerequisites
+
+Node.js >= 16.0.0
+MongoDB >= 5.0
+npm >= 8.0.0
+
+🛠️ Installation
+
+Clone the repository
+
+bashgit clone <repository-url>
+cd bachpan-backend
+
+Install dependencies
+
+bashnpm install
+
+Configure environment variables
+
+bashcp .env.example .env
+# Edit .env with your configurations
+
+Create uploads directory
+
+bashmkdir uploads
+
+Start the server
+
+bash# Development mode
+npm run dev
+
+# Production mode
+npm start
+📁 Project Structure
+bachpan-backend/
+├── config/
+│   └── database.js          # Database configuration
+├── controllers/
+│   ├── reportController.js  # Report CRUD operations
+│   ├── statsController.js   # Statistics and analytics
+│   ├── aadhaarController.js # Aadhaar matching logic
+│   ├── adminController.js   # Admin dashboard
+│   └── authController.js    # Authentication
+├── middleware/
+│   ├── auth.js             # JWT authentication
+│   └── upload.js           # File upload handling
+├── models/
+│   ├── Report.js           # Report schema
+│   └── User.js             # User schema
+├── routes/
+│   ├── reportRoutes.js
+│   ├── statsRoutes.js
+│   ├── aadhaarRoutes.js
+│   ├── adminRoutes.js
+│   └── authRoutes.js
+├── uploads/                # Uploaded media files
+├── .env.example           # Environment variables template
+├── package.json
+└── server.js              # Application entry point
+🔌 API Endpoints
+Authentication
+
+POST /api/auth/register - Register new user
+POST /api/auth/login - User login
+GET /api/auth/me - Get current user (Protected)
+PATCH /api/auth/profile - Update profile (Protected)
+PATCH /api/auth/change-password - Change password (Protected)
+
+Reports
+
+POST /api/report - Submit new report (with file upload)
+GET /api/report - Get all reports (with filters)
+GET /api/report/:id - Get single report
+PATCH /api/report/:id/status - Update report status (Admin)
+DELETE /api/report/:id - Delete report (Admin)
+
+Statistics
+
+GET /api/stats - Get overall statistics
+GET /api/stats/nearby - Get nearby reports (with radius)
+
+Aadhaar Matching
+
+POST /api/match-aadhaar - Match face with Aadhaar database
+GET /api/match-aadhaar/:report_id - Get Aadhaar matches for report
+
+Admin Dashboard
+
+GET /api/admin/dashboard - Get comprehensive dashboard data (Admin)
+GET /api/admin/report/:id - Get detailed report (Admin)
+PATCH /api/admin/report/:id/assign - Assign report to user (Admin)
+
+📝 Usage Examples
+Submit a Report
+bashcurl -X POST http://localhost:5000/api/report \
+  -F "uploader_name=John Doe" \
+  -F "contact_email=john@example.com" \
+  -F "contact_phone=9876543210" \
+  -F "location_latitude=28.6139" \
+  -F "location_longitude=77.2090" \
+  -F "city=New Delhi" \
+  -F "state=Delhi" \
+  -F "description=Child labour spotted at construction site" \
+  -F "media=@/path/to/image.jpg" \
+  -F "media=@/path/to/video.mp4"
+Login
+bashcurl -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@bachpan.org",
+    "password": "your_password"
+  }'
+Get Statistics
+bashcurl http://localhost:5000/api/stats
+Match Aadhaar (Protected)
+bashcurl -X POST http://localhost:5000/api/match-aadhaar \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "report_id": "RPT1234567890"
+  }'
+🔐 Authentication
+The API uses JWT (JSON Web Tokens) for authentication. Include the token in the Authorization header:
+Authorization: Bearer YOUR_JWT_TOKEN
+🗃️ Database Schema
+Report Model
+
+report_id (auto-generated)
+uploader_name
+contact_email
+contact_phone
+location (latitude, longitude, address)
+city, state
+timestamp
+media_urls (array)
+description
+status (pending, verified, under_review, resolved, rejected)
+priority (low, medium, high, critical)
+aadhaar_matches (array of top 6 matches)
+notes, assigned_to, verified_by
+
+User Model
+
+name
+email (unique)
+password (hashed)
+role (admin, moderator, viewer)
+isActive
+lastLogin
+
+🛡️ Security Features
+
+Password hashing with bcrypt
+JWT token-based authentication
+CORS enabled
+Helmet.js for security headers
+File upload validation
+Input sanitization
+Role-based access control
+
+🌍 Environment Variables
+See .env.example for all required environment variables.
+📊 Response Format
+All API responses follow this format:
+json{
+  "status": "success|error",
+  "message": "Response message",
+  "data": {}
+}
+🐛 Error Handling
+The API includes comprehensive error handling with appropriate HTTP status codes:
+
+200: Success
+201: Created
+400: Bad Request
+401: Unauthorized
+403: Forbidden
+404: Not Found
+500: Internal Server Error
+
+🚦 Status Codes
+Report statuses:
+
+pending: Newly submitted
+verified: Verified by admin
+under_review: Being investigated
+resolved: Case resolved
+rejected: Invalid report
+
+📈 Development
+bash# Run in development mode with auto-reload
+npm run dev
+
+# Run in production mode
+npm start
+🤝 Contributing
+
+Fork the repository
+Create your feature branch
+Commit your changes
+Push to the branch
+Create a Pull Request
+
+📄 License
+MIT License
+👥 Support
+For support, email support@bachpan.org or create an issue in the repository.
+🙏 Acknowledgments
+
+Built for social good to combat child labour
+Thanks to all contributors and supporters
