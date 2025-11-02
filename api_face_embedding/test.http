@@ -1,0 +1,4 @@
+POST http://localhost:3000/similarity-image
+Content-Type: multipart/form-data
+
+image=@.C:\Users\PARTHIVI\Downloads\api_face_embedding\dataset\sample_dataset_face.jpg
